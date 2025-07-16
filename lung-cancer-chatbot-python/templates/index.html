@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lung Cancer Risk Assessment Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🫁 Lung Cancer Risk Assessment Chatbot</h1>
+            <p>AI-powered insights from 3,001 medical cases</p>
+            <div class="dataset-info">
+                <span id="datasetInfo">Loading dataset information...</span>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p><strong>Hello! I'm your lung cancer information specialist.</strong></p>
+                        <p>I have access to a comprehensive dataset of 3,001 medical cases and can help you with:</p>
+                        <ul>
+                            <li>🔍 Lung cancer symptoms and risk factors</li>
+                            <li>📊 Dataset statistics and patterns</li>
+                            <li>🚭 Prevention and lifestyle factors</li>
+                            <li>📈 Medical insights and analysis</li>
+                        </ul>
+                        <p><strong>⚠️ Medical Disclaimer:</strong> This information is for educational purposes only. Always consult healthcare professionals for medical advice.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <input type="text" id="userInput" placeholder="Ask about lung cancer symptoms, risk factors, or dataset insights..." />
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing your question...</p>
+        </div>
+    </div>
+
+    <script>
+        class LungCancerChatbot {
+            constructor() {
+                this.chatMessages = document.getElementById('chatMessages');
+                this.userInput = document.getElementById('userInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.loading = document.getElementById('loading');
+                this.datasetInfo = document.getElementById('datasetInfo');
+                
+                this.init();
+            }
+            
+            init() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+                
+                this.loadDatasetInfo();
+            }
+            
+            async loadDatasetInfo() {
+                try {
+                    const response = await fetch('/api/dataset-info');
+                    const data = await response.json();
+                    this.datasetInfo.innerHTML = `
+                        📊 ${data.total_records} records | 
+                        🔴 ${data.cancer_cases} cancer cases | 
+                        🟢 ${data.non_cancer_cases} non-cancer cases
+                    `;
+                } catch (error) {
+                    this.datasetInfo.innerHTML = '⚠️ Dataset information unavailable';
+                }
+            }
+            
+            async sendMessage() {
+                const message = this.userInput.value.trim();
+                if (!message) return;
+                
+                this.addMessage(message, 'user');
+                this.userInput.value = '';
+                
+                this.showLoading(true);
+                this.sendButton.disabled = true;
+                
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.addMessage(data.response, 'bot');
+                    } else {
+                        this.addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                    }
+                    
+                } catch (error) {
+                    this.addMessage('Connection error. Please check your internet connection and try again.', 'bot');
+                } finally {
+                    this.showLoading(false);
+                    this.sendButton.disabled = false;
+                }
+            }
+            
+            addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                const formattedText = text.replace(/\n/g, '<br>');
+                contentDiv.innerHTML = formattedText;
+                
+                messageDiv.appendChild(contentDiv);
+                this.chatMessages.appendChild(messageDiv);
+                
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+            
+            showLoading(show) {
+                this.loading.style.display = show ? 'block' : 'none';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new LungCancerChatbot();
+        });
+    </script>
+</body>
+</html>
